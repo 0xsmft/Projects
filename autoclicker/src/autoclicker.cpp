@@ -12,7 +12,16 @@
 
 #include <iostream>
 
+enum class MouseButton : uint8_t
+{
+	Left,
+	Right,
+	Middle,
+	Extra1,
+};
+
 static unsigned long s_DelayBetweenClicks = 140ul;
+static MouseButton s_MouseButton = MouseButton::Left;
 
 static void SendButtonInput( DWORD flags ) 
 {
@@ -30,12 +39,48 @@ static void SendButtonInput( DWORD flags )
 
 static void SendButtonInputDown() 
 {
-	SendButtonInput( MOUSEEVENTF_LEFTDOWN );
+	switch( s_MouseButton )
+	{
+		default:
+		case MouseButton::Left:
+			::SendButtonInput( MOUSEEVENTF_LEFTDOWN );
+			break;
+
+		case MouseButton::Right:
+			::SendButtonInput( MOUSEEVENTF_RIGHTDOWN );
+			break;
+
+		case MouseButton::Middle:
+			::SendButtonInput( MOUSEEVENTF_MIDDLEDOWN );
+			break;
+
+		case MouseButton::Extra1:
+			::SendButtonInput( MOUSEEVENTF_XDOWN );
+			break;
+	}
 }
 
 static void SendButtonInputRelease() 
 {
-	SendButtonInput( MOUSEEVENTF_LEFTUP );
+	switch( s_MouseButton )
+	{
+		default:
+		case MouseButton::Left:
+			::SendButtonInput( MOUSEEVENTF_LEFTUP );
+			break;
+
+		case MouseButton::Right:
+			::SendButtonInput( MOUSEEVENTF_RIGHTUP );
+			break;
+
+		case MouseButton::Middle:
+			::SendButtonInput( MOUSEEVENTF_MIDDLEUP );
+			break;
+
+		case MouseButton::Extra1:
+			::SendButtonInput( MOUSEEVENTF_XUP );
+			break;
+	}
 }
 
 int main( int count, char** ppArgs )
@@ -50,6 +95,25 @@ int main( int count, char** ppArgs )
 		{
 			if( s_DelayBetweenClicks > 0 )
 				break;
+		}
+		else
+		{
+			std::cout << "Invalid input.\n";
+			std::cin.clear();
+		}
+
+		std::cin.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
+	}
+
+	while( true )
+	{
+		std::cout << "Enter the mouse button number, (0 = Left, 1 = Right, 2 = Middle, 3 = Extra1)\n";
+
+		uint16_t btn = 0u;
+		if( std::cin >> btn && btn != std::numeric_limits<uint8_t>::max() && btn <= 3 )
+		{
+			s_MouseButton = ( MouseButton ) btn;
+			break;
 		}
 		else
 		{
