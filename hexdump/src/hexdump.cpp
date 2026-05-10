@@ -30,7 +30,7 @@ int main( int count, char** ppArgs )
 	std::ifstream stream( inFile, std::ios::in | std::ios::binary );
 
 	uint64_t offset = 0;
-	uint64_t numberSinceLastOffset = 0;
+	uint64_t numberOfBytesInCurrentRow = 0;
 
 	std::cout << "Offset   00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 Decoded Text\n";
 	std::cout << std::format( "{:08} ", offset );
@@ -43,32 +43,39 @@ int main( int count, char** ppArgs )
 		currentChar = stream.get();
 		if( stream.eof() )
 		{
-			// 16 spaces
-			// 32 hex digits
-			// 16 + 32 = 47
-			const uint64_t numberRemaingUntilNextCol = 47ull - numberSinceLastOffset;
+			// To get the number of hex number we have written in this row we can simply
+			// do numberOfBytesInCurrentRow * 2, e.g. 7 number will become 14 hex digits
+			// then we need to add the number of spaces which is just the number of bytes we have written.
+			const uint64_t numberOfCharsInRow = ( ( numberOfBytesInCurrentRow * 2 ) + numberOfBytesInCurrentRow );
 
-			for( size_t i = 0; i < numberSinceLastOffset; ++i )
+			// 16 spaces (between hex values) + 1 space to next col
+			// 32 hex digits
+			// 17 + 32 = 49
+			const uint64_t numberRemaingUntilNextCol = 49ull - numberOfCharsInRow;
+
+			std::cout << std::setw( numberRemaingUntilNextCol );
+
+			for( size_t i = 0; i < numberOfBytesInCurrentRow; ++i )
 			{
 				const auto c = last16Chars[ i ];
-				if( c == 0 || c == '\n' || c == '\r' || c == '\t' )
-					std::cout << std::setw( numberRemaingUntilNextCol + i ) << '.';
+				if( c <= 31 || c == 127 )
+					std::cout << '.';
 				else
-					std::cout << std::setw( numberRemaingUntilNextCol + i ) << last16Chars[ i ];
+					std::cout << last16Chars[ i ];
 			}
 
 			break;
 		}
 
-		if( numberSinceLastOffset == 16 )
+		if( numberOfBytesInCurrentRow == 16 )
 		{
 			offset += 16;
-			numberSinceLastOffset = 0;
+			numberOfBytesInCurrentRow = 0;
 
 			for( size_t i = 0; i < 16; ++i )
 			{
 				const auto c = last16Chars[ i ];
-				if( c == 0 || c == '\n' || c == '\r' || c == '\t' )
+				if( c <= 31 || c == 127 )
 					std::cout << '.';
 				else
 					std::cout << last16Chars[ i ];
@@ -80,10 +87,10 @@ int main( int count, char** ppArgs )
 			std::cout << std::format( "{:08} ", offset );
 		}
 
-		last16Chars[ numberSinceLastOffset ] = currentChar;
+		last16Chars[ numberOfBytesInCurrentRow ] = currentChar;
 
 		std::cout << std::format( "{:02X} ", currentChar );
-		++numberSinceLastOffset;
+		++numberOfBytesInCurrentRow;
 	}
 
 	stream.close();
